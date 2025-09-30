@@ -15,8 +15,8 @@
     }@inputs:
     let
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
-      xmclVersion = "0.52.3";
-      sha256 = "sha256:2a80cee571a5de0d1947bf4db4ea5dfa67a89d6d105a053059fe0d1f5cca3152";
+      xmclVersion = "0.52.4";
+      sha256 = "sha256:ed74065f087f3a1bf75884b1a0d4256cc044385ad3077c32b9735d7eb261aa1b";
       runtimeDeps =
         with pkgs;
         [
