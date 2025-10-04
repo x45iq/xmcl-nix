@@ -89,11 +89,11 @@ stdenv.mkDerivation rec {
     description = "X Minecraft Launcher (XMCL)";
     homepage = "https://github.com/Voxelum/x-minecraft-launcher";
     license = lib.licenses.mit;
-    platforms = [ "x86_64-linux" ];
+    platforms = ["x86_64-linux"];
     maintainers = with lib.maintainers; [
       x45iq
     ];
-    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    sourceProvenance = with lib.sourceTypes; [binaryNativeCode];
     desktopFileName = "${pname}.desktop";
   };
 }
