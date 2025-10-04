@@ -49,10 +49,10 @@
 in
   stdenv.mkDerivation rec {
     pname = "xmcl";
-    version = "0.52.4";
+    version = "0.52.5";
     src = fetchurl {
       url = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/xmcl-${version}-x64.tar.xz";
-      sha256 = "sha256:ed74065f087f3a1bf75884b1a0d4256cc044385ad3077c32b9735d7eb261aa1b";
+      sha256 = "sha256:a202ca5d87b21a9fc7b119ba1bed1c627981c3e50fe05a7235da3a3cab90d1c0";
     };
     nativeBuildInputs = [
       makeWrapper
