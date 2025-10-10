@@ -1,0 +1,70 @@
+name: Update XMCL
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-xmcl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Get latest release version
+        id: latest
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/latest | jq -r .tag_name)
+          LATEST="${LATEST#v}"
+          echo "latest_version=$LATEST" >> $GITHUB_OUTPUT
+
+      - name: Get current version
+        id: current
+        run: |
+          CURRENT=$(grep -oP 'version = "\K[0-9\.]+' package.nix)
+          echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Check if update needed
+        id: compare
+        run: |
+          if [ "${{ steps.latest.outputs.latest_version }}" = "${{ steps.current.outputs.current_version }}" ]; then
+            echo "up_to_date=true" >> $GITHUB_OUTPUT
+          else
+            echo "up_to_date=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update package.nix
+        if: steps.compare.outputs.up_to_date == 'false'
+        run: |
+          set -euo pipefail
+          LATEST=${{ steps.latest.outputs.latest_version }}
+          echo "🧩 Updating XMCL to version $LATEST"
+
+          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/xmcl-${LATEST}-x64.tar.xz.sha256"
+          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
+
+          echo "ℹ️ SHA256 from release: $SHA256"
+
+          sed -i "s/version = \".*\";/version = \"${LATEST}\";/" package.nix
+          sed -i "s#sha256 = \".*\";#sha256 = \"sha256:${SHA256}\";#" package.nix
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.nix
+          git commit -m "Update XMCL to version ${LATEST}"
+          git push origin HEAD
+
+      - name: No update needed
+        if: steps.compare.outputs.up_to_date == 'true'
+        run: echo "✅ XMCL is already up-to-date."
+
