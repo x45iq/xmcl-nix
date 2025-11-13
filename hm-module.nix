@@ -1,4 +1,4 @@
-{
+{self}: {
   config,
   lib,
   pkgs,
@@ -12,7 +12,11 @@
     mkIf
     mkMerge
     ;
+
+  flakeXmcl = self.packages.${pkgs.system}.default;
+
   cfg = config.programs.xmcl;
+
   getJavaVersion = jre:
     pkgs.runCommand "get-java-version"
     {
@@ -57,8 +61,8 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = pkgs.xmcl;
-      defaultText = "pkgs.xmcl";
+      default = flakeXmcl;
+      defaultText = "self.packages.<system>.default";
       description = "XMCL package to use.";
     };
 
@@ -68,6 +72,7 @@ in {
       example = ["--password-store=\"gnome-libsecret\""];
       description = "Additional command line arguments to pass to XMCL.";
     };
+
     jres = mkOption {
       type = types.listOf types.package;
       default = [];
@@ -81,13 +86,9 @@ in {
 
   config = mkIf cfg.enable (mkMerge [
     {
-      home.packages = [cfg.package];
-
-      nixpkgs.overlays = [
-        (final: prev: {
-          xmcl = prev.callPackage ./package.nix {
-            commandLineArgs = lib.concatStringsSep " " cfg.commandLineArgs;
-          };
+      home.packages = [
+        (cfg.package.override {
+          commandLineArgs = lib.concatStringsSep " " cfg.commandLineArgs;
         })
       ];
     }
