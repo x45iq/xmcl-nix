@@ -13,7 +13,7 @@
     mkMerge
     ;
 
-  flakeXmcl = self.packages.${pkgs.system}.default;
+  flakeXmcl = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   cfg = config.programs.xmcl;
 
