@@ -42,22 +42,32 @@ jobs:
           else
             echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
-
+      - name: Get SHA256 for x86_64
+        if: steps.compare.outputs.up_to_date == 'false'
+        id: sha_x86_64
+        run: |
+          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${{ steps.latest.outputs.latest_version }}/app-${{ steps.latest.outputs.latest_version }}-linux.asar.sha256"
+          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
+          echo "sha256_x86_64=$SHA256" >> $GITHUB_OUTPUT
+      - name: Get SHA256 for ARM64
+        if: steps.compare.outputs.up_to_date == 'false'
+        id: sha_arm64
+        run: |
+          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${{ steps.latest.outputs.latest_version }}/app-${{ steps.latest.outputs.latest_version }}-linux-arm64.asar.sha256"
+          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
+          echo "sha256_arm64=$SHA256" >> $GITHUB_OUTPUT
       - name: Update package.nix
         if: steps.compare.outputs.up_to_date == 'false'
         run: |
           set -euo pipefail
           LATEST=${{ steps.latest.outputs.latest_version }}
+          SHA_X86_64=${{ steps.sha_x86_64.outputs.sha256_x86_64 }}
+          SHA_ARM64=${{ steps.sha_arm64.outputs.sha256_arm64 }}
           echo "🧩 Updating XMCL to version $LATEST"
-
-          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux.asar.sha256"
-          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
-
-          echo "ℹ️ SHA256 from release: $SHA256"
-
           sed -i "s/version = \".*\";/version = \"${LATEST}\";/" package.nix
-          sed -i "s#sha256 = \".*\";#sha256 = \"sha256:${SHA256}\";#" package.nix
-
+          sed -i "s|url = \"\${base}/app-\${version}-linux.asar\";|url = \"\${base}/app-\${version}-linux.asar\";|" package.nix
+          sed -i '/x86_64-linux = {/,/};/ s|sha256 = "sha256:[^"]*"|sha256 = "sha256:'"$SHA_X86_64"'"|' package.nix
+          sed -i '/aarch64-linux = {/,/};/ s|sha256 = "sha256:[^"]*"|sha256 = "sha256:'"$SHA_ARM64"'"|' package.nix
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.nix
@@ -67,4 +77,3 @@ jobs:
       - name: No update needed
         if: steps.compare.outputs.up_to_date == 'true'
         run: echo "✅ XMCL is already up-to-date."
-

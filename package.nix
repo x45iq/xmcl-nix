@@ -23,6 +23,20 @@
   copyDesktopItems,
   commandLineArgs ? "",
 }: let
+  version = "0.52.7";
+  sources = let
+    base = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}";
+  in {
+    x86_64-linux = {
+      url = "${base}/app-${version}-linux.asar";
+      sha256 = "sha256:8d09138a7925a90d4269cf1f233042e3c14bea4bbb53a89a590a5207e589fcfd";
+    };
+    aarch64-linux = {
+      url = "${base}/app-${version}-linux-arm64.asar";
+      sha256 = "sha256:a4a607fef40aa933fe91223f9cbf655c8487c5092978c02cd3bb8cc37eb03eba";
+    };
+  };
+  source = sources.${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
   runtimeLibs = [
     (lib.getLib stdenv.cc.cc)
     glfw3-minecraft
@@ -49,10 +63,10 @@
 in
   stdenv.mkDerivation rec {
     pname = "xmcl";
-    version = "0.52.7";
+    inherit version;
     src = fetchurl {
-      url = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/app-${version}-linux.asar";
-      sha256 = "sha256:8d09138a7925a90d4269cf1f233042e3c14bea4bbb53a89a590a5207e589fcfd";
+      url = source.url;
+      sha256 = source.sha256;
     };
     nativeBuildInputs = [
       makeWrapper
@@ -91,7 +105,7 @@ in
       description = "X Minecraft Launcher (XMCL)";
       homepage = "https://github.com/Voxelum/x-minecraft-launcher";
       license = lib.licenses.mit;
-      platforms = ["x86_64-linux"];
+      platforms = ["x86_64-linux" "aarch64-linux"];
       maintainers = with lib.maintainers; [
         x45iq
       ];
