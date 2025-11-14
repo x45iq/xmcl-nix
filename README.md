@@ -11,50 +11,52 @@ This flake allows you to install and run [XMCL](https://github.com/Voxelum/x-min
 - Home Manager module for convenient integration
 
 ## 🚀 Installation
+Just add it to your NixOS `flake.nix` or home-manager:
+
+```nix
+inputs = {
+  xmcl = {
+    url = "github:x45iq/xmcl-nix";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  # ...
+}
+```
+
 ### Via `nix run`
 ```bash
 nix run github:x45iq/xmcl-nix
 ```
 
-### Adding to `flake.nix`
-```nix
-{
-  inputs = {
-    xmcl.url = "github:x45iq/xmcl-nix";
-  };
-  outputs = { self, xmcl, ... }: {
-    packages.x86_64-linux.my-xmcl = xmcl.packages.x86_64-linux.default;
-  };
-}
-```
-
 ### Home Manager Module
 ```nix
 {
-  inputs = {
-    xmcl.url = "github:x45iq/xmcl-nix";
-  };
-  outputs = { self, nixpkgs, xmcl, ... }: {
-    homeConfigurations.my-user = nixpkgs.lib.homeManagerConfiguration {
-      pkgs = import nixpkgs { system = "x86_64-linux"; };
-      modules = [
-        xmcl.homeModules.xmcl
-        {
-          programs.xmcl = {
-            enable = true;
-            commandLineArgs = [
-              "--password-store=\"gnome-libsecret\""
-            ];
-            jres = [
-              pkgs.jre8
-              pkgs.temurin-jre-bin-17
-            ];
-          };
-        }
-      ];
-    };
-  };
+  # home.nix
+  imports = [
+    inputs.xmcl.homeModules.xmcl
+  ];
+
+  programs.xmcl = {
+    enable = true;
+    commandLineArgs = [
+      "--password-store=\"gnome-libsecret\""
+    ];
+    jres = [
+      pkgs.jre8
+      pkgs.temurin-jre-bin-17
+    ];
+  }; 
 }
+```
+### With environment.systemPackages or home.packages
+
+To integrate `xmcl` to your NixOS/Home Manager configuration, add the
+following to your `environment.systemPackages` or `home.packages`:
+
+```nix
+# options are: 'x86_64-linux', 'aarch64-linux'
+
+inputs.xmcl.packages."${system}".default
 ```
 
 ## ⚙️ Home Manager Module Options
