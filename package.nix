@@ -51,8 +51,8 @@ in
     pname = "xmcl";
     version = "0.52.7";
     src = fetchurl {
-      url = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/xmcl-${version}-x64.tar.xz";
-      sha256 = "sha256:cf26709e533c076ef083e9da5b805038530fed012759af27f778e63be1c6c3ae";
+      url = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/app-${version}-linux.asar";
+      sha256 = "sha256:8d09138a7925a90d4269cf1f233042e3c14bea4bbb53a89a590a5207e589fcfd";
     };
     nativeBuildInputs = [
       makeWrapper
@@ -69,17 +69,18 @@ in
         icon = pname;
       })
     ];
+    dontUnpack = true;
 
     installPhase = ''
       runHook preInstall
 
-      mkdir -p $out/bin $out/opt/xmcl $out/share/icons/hicolor
-      cp -r ./* $out/opt/xmcl/
+      mkdir -p $out/bin $out/share/${pname} $out/share/icons/hicolor
+      cp $src $out/share/${pname}/app.asar
 
       cp -r ${./assets}/icons/ $out/share/
 
       makeWrapper ${lib.getExe electron} $out/bin/${pname} \
-        --add-flags $out/opt/xmcl/resources/app.asar \
+        --add-flags $out/share/${pname}/app.asar \
         --add-flags ${lib.escapeShellArg commandLineArgs} \
         --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}" \
         --set LD_LIBRARY_PATH ${addDriverRunpath.driverLink}/lib:${lib.makeLibraryPath runtimeLibs}

@@ -50,7 +50,7 @@ jobs:
           LATEST=${{ steps.latest.outputs.latest_version }}
           echo "🧩 Updating XMCL to version $LATEST"
 
-          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/xmcl-${LATEST}-x64.tar.xz.sha256"
+          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux.asar.sha256"
           SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
 
           echo "ℹ️ SHA256 from release: $SHA256"
