@@ -2,7 +2,7 @@ name: Update XMCL
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,6 @@ permissions:
 jobs:
   update-xmcl:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -23,18 +22,32 @@ jobs:
 
       - name: Get latest release version
         id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/latest | jq -r .tag_name)
-          LATEST="${LATEST#v}"
+          set -euo pipefail
+          RESPONSE=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/latest)
+          TAG_NAME=$(echo "$RESPONSE" | jq -r .tag_name)
+          if [ "$TAG_NAME" = "null" ] || [ -z "$TAG_NAME" ]; then
+            echo "❌ Failed to get latest tag_name from GitHub API"
+            exit 1
+          fi
+          LATEST="${TAG_NAME#v}"
           echo "latest_version=$LATEST" >> $GITHUB_OUTPUT
 
       - name: Get current version
         id: current
         run: |
+          set -euo pipefail
           CURRENT=$(grep -oP 'version = "\K[0-9\.]+' package.nix)
+          if [ -z "$CURRENT" ]; then
+            echo "❌ Could not extract current version from package.nix"
+            exit 1
+          fi
           echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
 
-      - name: Check if update needed
+      - name: Compare versions
         id: compare
         run: |
           if [ "${{ steps.latest.outputs.latest_version }}" = "${{ steps.current.outputs.current_version }}" ]; then
@@ -42,32 +55,35 @@ jobs:
           else
             echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
-      - name: Get SHA256 for x86_64
-        if: steps.compare.outputs.up_to_date == 'false'
-        id: sha_x86_64
-        run: |
-          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${{ steps.latest.outputs.latest_version }}/app-${{ steps.latest.outputs.latest_version }}-linux.asar.sha256"
-          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
-          echo "sha256_x86_64=$SHA256" >> $GITHUB_OUTPUT
-      - name: Get SHA256 for ARM64
-        if: steps.compare.outputs.up_to_date == 'false'
-        id: sha_arm64
-        run: |
-          SHA_URL="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${{ steps.latest.outputs.latest_version }}/app-${{ steps.latest.outputs.latest_version }}-linux-arm64.asar.sha256"
-          SHA256=$(curl -fsSL "$SHA_URL" | awk '{print $1}')
-          echo "sha256_arm64=$SHA256" >> $GITHUB_OUTPUT
+
       - name: Update package.nix
         if: steps.compare.outputs.up_to_date == 'false'
+        env:
+          LATEST: ${{ steps.latest.outputs.latest_version }}
         run: |
           set -euo pipefail
-          LATEST=${{ steps.latest.outputs.latest_version }}
-          SHA_X86_64=${{ steps.sha_x86_64.outputs.sha256_x86_64 }}
-          SHA_ARM64=${{ steps.sha_arm64.outputs.sha256_arm64 }}
-          echo "🧩 Updating XMCL to version $LATEST"
+
+          echo "🔄 Updating XMCL to version $LATEST"
+
+          fetch_sha() {
+            local arch=$1
+            local url="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux-${arch}.asar.sha256"
+            echo "⬇️  Fetching SHA256 for $arch from $url"
+            SHA=$(curl -fsSL "$url" | awk '{print $1}')
+            if [ -z "$SHA" ]; then
+              echo "❌ Failed to fetch SHA256 for $arch"
+              exit 1
+            fi
+            echo "$SHA"
+          }
+
+          SHA_X86_64=$(fetch_sha "amd64")   
+          SHA_ARM64=$(fetch_sha "arm64")
+
           sed -i "s/version = \".*\";/version = \"${LATEST}\";/" package.nix
-          sed -i "s|url = \"\${base}/app-\${version}-linux.asar\";|url = \"\${base}/app-\${version}-linux.asar\";|" package.nix
           sed -i '/x86_64-linux = {/,/};/ s|sha256 = "sha256:[^"]*"|sha256 = "sha256:'"$SHA_X86_64"'"|' package.nix
           sed -i '/aarch64-linux = {/,/};/ s|sha256 = "sha256:[^"]*"|sha256 = "sha256:'"$SHA_ARM64"'"|' package.nix
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.nix
