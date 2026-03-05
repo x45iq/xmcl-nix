@@ -67,11 +67,19 @@ jobs:
 
           fetch_sha() {
             local arch=$1
-            local url="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux-${arch}.asar.sha256"
-            echo "⬇️  Fetching SHA256 for $arch from $url"
+            local url
+            if [ "$arch" = "amd64" ]; then
+              url="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux.asar.sha256"
+            elif [ "$arch" = "arm64" ]; then
+              url="https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${LATEST}/app-${LATEST}-linux-arm64.asar.sha256"
+            else
+              echo "❌ Unsupported architecture: $arch" >&2
+              exit 1
+            fi
+            echo "⬇️  Fetching SHA256 for $arch from $url" >&2
             SHA=$(curl -fsSL "$url" | awk '{print $1}')
             if [ -z "$SHA" ]; then
-              echo "❌ Failed to fetch SHA256 for $arch"
+              echo "❌ Failed to fetch SHA256 for $arch" >&2
               exit 1
             fi
             echo "$SHA"
