@@ -23,17 +23,17 @@
   copyDesktopItems,
   commandLineArgs ? "",
 }: let
-  version = "0.60.0";
+  version = "0.61.0";
   sources = let
     base = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}";
   in {
     x86_64-linux = {
       url = "${base}/app-${version}-linux.asar";
-      sha256 = "sha256:a68145626a4ede843769e943751f25edb1836401242c6aec7f7083cca411ce04";
+      sha256 = "sha256:60b83c8306109ed847a82f6da60d042bdcc5840d56874e1363b4d260d3923cf8";
     };
     aarch64-linux = {
       url = "${base}/app-${version}-linux-arm64.asar";
-      sha256 = "sha256:a68145626a4ede843769e943751f25edb1836401242c6aec7f7083cca411ce04";
+      sha256 = "sha256:60b83c8306109ed847a82f6da60d042bdcc5840d56874e1363b4d260d3923cf8";
     };
   };
   source = sources.${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
